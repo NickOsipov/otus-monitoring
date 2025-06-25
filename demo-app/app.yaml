@@ -1,0 +1,151 @@
+# =============================================================================
+# DEPLOYMENT: Демо-приложение для мониторинга
+# =============================================================================
+# Создаёт поды с двумя контейнерами:
+# 1. node-exporter - генерирует метрики для Prometheus
+# 2. log-generator - генерирует логи для Loki
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-app
+  namespace: demo-app
+  labels:
+    app: demo-app
+spec:
+  # Количество реплик подов
+  replicas: 2
+  
+  # Селектор для поиска подов этого Deployment
+  selector:
+    matchLabels:
+      app: demo-app
+      
+  # Шаблон для создания подов
+  template:
+    metadata:
+      labels:
+        app: demo-app
+      # Аннотации для автоматического обнаружения Prometheus'ом
+      annotations:
+        prometheus.io/scrape: "true"    # Разрешить сбор метрик
+        prometheus.io/port: "9100"      # Порт для сбора метрик
+        prometheus.io/path: "/metrics"  # Путь к эндпоинту метрик
+    spec:
+      containers:
+      # =========================================================================
+      # КОНТЕЙНЕР 1: Node Exporter - источник метрик
+      # =========================================================================
+      - name: demo-app
+        image: prom/node-exporter:latest
+        ports:
+        - containerPort: 9100
+          name: metrics              # Именованный порт для метрик
+        
+        # Ограничения ресурсов для контейнера
+        resources:
+          requests:                  # Минимальные ресурсы
+            memory: 50Mi
+            cpu: 50m
+          limits:                    # Максимальные ресурсы
+            memory: 100Mi
+            cpu: 100m
+            
+        # Команда запуска node_exporter
+        command: ["/bin/node_exporter"]
+        args:
+        - --web.listen-address=:9100                    # Порт веб-интерфейса
+        - --path.procfs=/host/proc                      # Путь к /proc файлам хоста
+        - --path.sysfs=/host/sys                        # Путь к /sys файлам хоста
+        - --collector.filesystem.ignored-mount-points  # Игнорировать системные mount points
+        - ^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)
+        
+        # Монтирование системных директорий хоста для сбора метрик
+        volumeMounts:
+        - name: proc
+          mountPath: /host/proc
+          readOnly: true
+        - name: sys
+          mountPath: /host/sys
+          readOnly: true
+          
+      # =========================================================================
+      # КОНТЕЙНЕР 2: Log Generator - источник логов
+      # =========================================================================
+      - name: log-generator
+        image: busybox:latest
+        command: ["/bin/sh"]
+        args:
+        - -c
+        - |
+          # Бесконечный цикл генерации логов разных уровней
+          while true; do
+            echo "$(date): Demo app is running. Random number: $RANDOM"
+            echo "$(date): INFO - Processing request from user_$((RANDOM % 100))"
+            
+            # 10% вероятность ERROR лога
+            if [ $((RANDOM % 10)) -eq 0 ]; then
+              echo "$(date): ERROR - Something went wrong! Error code: $((RANDOM % 1000))"
+            fi
+            
+            # 20% вероятность WARN лога
+            if [ $((RANDOM % 5)) -eq 0 ]; then
+              echo "$(date): WARN - High memory usage detected"
+            fi
+            
+            sleep 10  # Пауза между логами
+          done
+          
+        # Минимальные ресурсы для log-generator
+        resources:
+          requests:
+            memory: 10Mi
+            cpu: 10m
+          limits:
+            memory: 20Mi
+            cpu: 20m
+            
+      # =========================================================================
+      # VOLUMES: Монтирование системных директорий
+      # =========================================================================
+      volumes:
+      - name: proc
+        hostPath:
+          path: /proc    # Директория процессов хоста
+      - name: sys
+        hostPath:
+          path: /sys     # Директория системной информации хоста
+          
+      # Настройки безопасности
+      hostNetwork: false  # Не использовать сеть хоста
+      hostPID: false      # Не использовать PID namespace хоста
+---
+# =============================================================================
+# SERVICE: Сервис для доступа к демо-приложению
+# =============================================================================
+# Обеспечивает сетевой доступ к подам демо-приложения
+# Используется Prometheus'ом для сбора метрик через ServiceMonitor
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-app-service
+  namespace: demo-app
+  labels:
+    app: demo-app
+  # Аннотации для Prometheus (дублируются для совместимости)
+  annotations:
+    prometheus.io/scrape: "true"    # Разрешить сбор метрик с этого сервиса
+    prometheus.io/port: "9100"      # Порт для сбора метрик
+    prometheus.io/path: "/metrics"  # Путь к эндпоинту метрик
+spec:
+  # Селектор подов, к которым будет направлять трафик
+  selector:
+    app: demo-app
+    
+  # Настройка портов сервиса
+  ports:
+  - name: metrics         # Именованный порт для метрик
+    port: 9100           # Порт сервиса (внешний)
+    targetPort: 9100     # Порт контейнера (внутренний)
+    
+  # Тип сервиса - внутренний (доступен только внутри кластера)
+  type: ClusterIP 

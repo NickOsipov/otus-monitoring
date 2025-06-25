@@ -1,0 +1,46 @@
+# Простые правила алертов для демо-приложения
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: demo-app-alerts
+  namespace: demo-app
+  labels:
+    app: demo-app
+    # Важно: этот лейбл нужен для обнаружения Prometheus'ом
+    release: monitoring
+spec:
+  groups:
+  - name: demo-app.rules
+    rules:
+    # Алерт на недоступность приложения
+    - alert: DemoAppDown
+      expr: up{job="demo-app-service"} == 0
+      for: 1m
+      labels:
+        severity: critical
+        app: demo-app
+      annotations:
+        summary: "Demo приложение недоступно"
+        description: "Demo приложение {{ $labels.instance }} недоступно более 1 минуты"
+    
+    # Алерт на высокое потребление CPU
+    - alert: DemoAppHighCPU
+      expr: rate(node_cpu_seconds_total{job="demo-app-service",mode!="idle"}[5m]) > 0.8
+      for: 2m
+      labels:
+        severity: warning
+        app: demo-app
+      annotations:
+        summary: "Высокое потребление CPU"
+        description: "Demo приложение {{ $labels.instance }} использует более 80% CPU в течение 2 минут"
+    
+    # Алерт на низкую доступную память
+    - alert: DemoAppLowMemory
+      expr: node_memory_MemAvailable_bytes{job="demo-app-service"} / node_memory_MemTotal_bytes{job="demo-app-service"} < 0.1
+      for: 5m
+      labels:
+        severity: warning
+        app: demo-app
+      annotations:
+        summary: "Мало свободной памяти"
+        description: "У demo приложения {{ $labels.instance }} осталось менее 10% свободной памяти" 
