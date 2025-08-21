@@ -12,11 +12,8 @@ metadata:
   labels:
     app: demo-app
 spec:
-  # Количество реплик подов
-  replicas: 2
-  
-  # Селектор для поиска подов этого Deployment
-  selector:
+  replicas: 2 # Количество реплик подов
+  selector:   # Селектор для поиска подов этого Deployment
     matchLabels:
       app: demo-app
       
@@ -56,7 +53,7 @@ spec:
         - --web.listen-address=:9100                    # Порт веб-интерфейса
         - --path.procfs=/host/proc                      # Путь к /proc файлам хоста
         - --path.sysfs=/host/sys                        # Путь к /sys файлам хоста
-        - --collector.filesystem.ignored-mount-points  # Игнорировать системные mount points
+        - --collector.filesystem.ignored-mount-points   # Игнорировать системные mount points
         - ^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)
         
         # Монтирование системных директорий хоста для сбора метрик
