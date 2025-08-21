@@ -42,12 +42,12 @@ grafana:
   # ==========================================================================
   grafana.ini:
     server:
-      domain: localhost               # Домен для Grafana
-      root_url: "http://localhost:3000"  # Базовый URL (для port-forward)
+      domain: localhost                   # Домен для Grafana
+      root_url: "http://localhost:3000"   # Базовый URL (для port-forward)
     security:
-      allow_embedding: true           # Разрешить iframe встраивание
+      allow_embedding: true               # Разрешить iframe встраивание
     auth.anonymous:
-      enabled: false                  # Отключить анонимный доступ
+      enabled: false                      # Отключить анонимный доступ
 
 # =============================================================================
 # PROMETHEUS: Система сбора и хранения метрик
@@ -77,10 +77,10 @@ prometheus:
     resources:
       requests:               # Минимальные ресурсы (guaranteed)
         memory: 400Mi         # RAM для работы Prometheus
-        cpu: 100m            # CPU (0.1 core) для работы
+        cpu: 100m             # CPU (0.1 core) для работы
       limits:                 # Максимальные ресурсы (limits)
         memory: 800Mi         # Максимум RAM
-        cpu: 200m            # Максимум CPU (0.2 core)
+        cpu: 200m             # Максимум CPU (0.2 core)
 
 # =============================================================================
 # ALERTMANAGER: Система управления алертами и уведомлениями
@@ -104,10 +104,10 @@ alertmanager:
     resources:
       requests:               # Минимальные ресурсы
         memory: 200Mi         # RAM для AlertManager
-        cpu: 100m            # CPU для обработки алертов
+        cpu: 100m             # CPU для обработки алертов
       limits:                 # Максимальные ресурсы
         memory: 400Mi         # Максимум RAM
-        cpu: 200m            # Максимум CPU
+        cpu: 200m             # Максимум CPU
 
 # =============================================================================
 # EXPORTERS: Сборщики метрик с различных компонентов
@@ -132,10 +132,10 @@ prometheusOperator:
   resources:
     requests:                   # Минимальные ресурсы для Operator
       memory: 200Mi             # RAM для управления CRD
-      cpu: 100m                # CPU для обработки изменений
+      cpu: 100m                 # CPU для обработки изменений
     limits:                     # Максимальные ресурсы
       memory: 400Mi             # Максимум RAM
-      cpu: 200m                # Максимум CPU
+      cpu: 200m                 # Максимум CPU
 
 # =============================================================================
 # KUBERNETES COMPONENTS: Мониторинг системных компонентов K8s
